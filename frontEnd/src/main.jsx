@@ -22,7 +22,7 @@ const routes = createBrowserRouter([
     Component: UserList,
   },
   { 
-    path: "/chatMessages/:recieverId", 
+    path: "/chatMessages/:recieverId/:recieverName", 
     Component: ChatScreen 
   },
   {

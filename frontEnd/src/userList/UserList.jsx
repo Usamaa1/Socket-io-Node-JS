@@ -40,7 +40,7 @@ const ChatUserList = () => {
                 background: "#f1f2f6"
               }}
               onClick={() => {
-                navigator(`/chatMessages/${_id}`)
+                navigator(`/chatMessages/${_id}/${userName}`)
 
               }} // implement this
             >

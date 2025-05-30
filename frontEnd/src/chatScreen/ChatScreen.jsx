@@ -6,34 +6,46 @@ import axios from "axios";
 const ChatScreen = () => {
   const [messages, setMessages] = useState([]); // store messages here
   const [newMessage, setNewMessage] = useState("");
+  const [userId, setUserId] = useState("");
+  const [userName, setUserName] = useState("");
   const messagesEndRef = useRef(null);
 
-  const {recieverId} = useParams();
-  console.log(recieverId)
-  
+  const { recieverId, recieverName } = useParams();
+  console.log(recieverId);
 
-  async function getAllMessages(){
-     try {
-         const response  =await axios.get(`http://localhost:3000/api/v1/chatMessage/${recieverId}`,{
-    withCredentials: true // <-- this is the fix
-  });
+  async function getAllMessages() {
+    try {
+      const response = await axios.get(
+        `http://localhost:3000/api/v1/chatMessage/${recieverId}`,
+        {
+          withCredentials: true,
+        }
+      );
 
-  const {data} = response.data;
-          console.log(data);
-          setMessages(data)
+      const { data } = response.data;
+
+        const sortedMessages = data.sort(
+      (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+    );
+
+    setMessages(sortedMessages);
+      console.log(sortedMessages);
+
+      const userData = await axios.get("http://localhost:3000/api/v1/me", {
+        withCredentials: true,
+      });
+
+      console.log(userData);
+      setUserId(userData?.data?.userId);
+      setUserName(userData?.data?.userName);
     } catch (error) {
-        console.error("Failed to fetch messages:", error);
-        
+      console.error("Failed to fetch messages:", error);
     }
   }
 
   // Fetch messages from API when chatUserId changes
   useEffect(() => {
-    
-
-   
-getAllMessages();
-   
+    getAllMessages();
   }, []);
 
   // Scroll to bottom on new message
@@ -41,10 +53,26 @@ getAllMessages();
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (newMessage.trim()) {
-      onSendMessage(newMessage.trim());
+      try {
+        const { data } = await axios.post(
+          "http://localhost:3000/api/v1/chatMessage",
+          {
+            senderId: userId,
+            senderName: userName,
+            recieverId: recieverId,
+            recieverName: recieverName,
+            message: newMessage.trim(),
+          }
+        );
+        console.log(data);
+        // alert("Message sent Successfull");
+      } catch (error) {
+        console.error("Message sending Failed:", error);
+      }
       setNewMessage("");
+       getAllMessages();
     }
   };
 
@@ -57,21 +85,26 @@ getAllMessages();
   return (
     <div className="chat-screen">
       <header className="chat-header">
-        <h2>{ "Select a user to chat"}</h2>
+        <h2>{"Select a user to chat"}</h2>
       </header>
 
-<button onClick={getAllMessages}>Get Messages</button>
+      <button onClick={getAllMessages}>Get Messages</button>
       <div className="chat-messages">
         {messages.length === 0 && (
-          <p className="no-messages">No messages yet. Start the conversation!</p>
+          <p className="no-messages">
+            No messages yet. Start the conversation!
+          </p>
         )}
         {messages.map(({ _id, recieverId, message, senderId }) => (
           <div
             key={_id}
             className={`chat-message ${
-              senderId === "me" ? "chat-message-sent" : "chat-message-received"
+              senderId === userId
+                ? "chat-message-sent"
+                : "chat-message-received"
             }`}
           >
+            <sub>{senderId == userId ? userName : recieverName}</sub>
             <p>{message}</p>
           </div>
         ))}

@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import "./ChatScreen.css";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import io from "socket.io-client";
+
+const socket = io("http://localhost:3000", { withCredentials: true });
 
 const ChatScreen = () => {
   const [messages, setMessages] = useState([]); // store messages here
@@ -24,12 +27,14 @@ const ChatScreen = () => {
 
       const { data } = response.data;
 
+      if (data) {
         const sortedMessages = data.sort(
-      (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
-    );
+          (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+        );
+        setMessages(sortedMessages);
+        console.log(sortedMessages);
+      }
 
-    setMessages(sortedMessages);
-      console.log(sortedMessages);
 
       const userData = await axios.get("http://localhost:3000/api/v1/me", {
         withCredentials: true,
@@ -53,26 +58,44 @@ const ChatScreen = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    socket.on("receiveMessage", (data) => {
+      setMessages((prev) => [...prev, data]);
+    });
+
+    return () => {
+      socket.off("receiveMessage");
+    };
+  }, []);
+
+
   const handleSend = async () => {
     if (newMessage.trim()) {
+      const messageData = {
+        senderId: userId,
+        senderName: userName,
+        recieverId: recieverId,
+        recieverName: recieverName,
+        message: newMessage.trim(),
+      };
+
       try {
         const { data } = await axios.post(
           "http://localhost:3000/api/v1/chatMessage",
+          messageData,
           {
-            senderId: userId,
-            senderName: userName,
-            recieverId: recieverId,
-            recieverName: recieverName,
-            message: newMessage.trim(),
+            withCredentials: true,
           }
         );
         console.log(data);
+
+        socket.emit("sendMessage", messageData);
         // alert("Message sent Successfull");
       } catch (error) {
         console.error("Message sending Failed:", error);
       }
       setNewMessage("");
-       getAllMessages();
+      getAllMessages();
     }
   };
 
@@ -95,9 +118,9 @@ const ChatScreen = () => {
             No messages yet. Start the conversation!
           </p>
         )}
-        {messages.map(({ _id, recieverId, message, senderId }) => (
+        {messages.map(({ _id, recieverId, message, senderId },index) => (
           <div
-            key={_id}
+            key={index}
             className={`chat-message ${
               senderId === userId
                 ? "chat-message-sent"

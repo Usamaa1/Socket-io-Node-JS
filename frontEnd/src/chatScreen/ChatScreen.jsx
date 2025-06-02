@@ -68,6 +68,12 @@ const ChatScreen = () => {
     };
   }, []);
 
+  useEffect(() => {
+  if (userId) {
+    socket.emit('registerUser', userId);
+  }
+}, [userId]);
+
 
   const handleSend = async () => {
     if (newMessage.trim()) {

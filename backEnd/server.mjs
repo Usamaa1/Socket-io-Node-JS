@@ -30,14 +30,22 @@ const port = 3000
 io.on('connection',(socket)=>{
 
 
+  console.log(`New connection ${socket.id}`)
     
-    console.log(`A user connected with user Id: ${userId}: `, socket.id);
+    // console.log(`A user connected with user Id: ${userId}: `, socket.id);
+
+    socket.on("registerUser",(userId)=>{
+      socket.join(userId);
+      console.log(`User ${userId} joined the room`);
+    })
 
 
   socket.on("sendMessage", (messageData)=>{
 
+    const {senderId, recieverId} = messageData;
 
-    io.emit('receiveMessage',messageData);
+
+    io.to(recieverId).emit('receiveMessage',messageData);
   })
 
   socket.on("disconnect",()=>{
